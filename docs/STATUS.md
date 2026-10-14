@@ -1,32 +1,39 @@
 # Development status
 
-Updated: 2026-10-12.
+Updated: 2026-10-14.
 
 ## Public distribution
 
-This is a documentation/planning repository. No application code, installable package, executable container or GitHub Release is currently distributed here. Public source publication is withheld after independent review; a passing existing suite alone does not make an implementation ready.
+This is a documentation/planning repository. No application code, installable package, executable container or GitHub Release is currently distributed here. Public source publication remains withheld; passing local checks and a scoped fix review do not replace the full publication gate.
 
 ## Verified internal progress
 
-The current internal SQLite/FastAPI tracer slice provides bounded JSON/NDJSON ingestion, shared API-key checks, basic time-windowed search, restrictive SQLite paths and a time-ordering index. Parent verification passed:
+The current internal SQLite/FastAPI tracer slice provides bounded JSON/NDJSON ingestion, shared API-key checks, basic time-windowed search, restrictive SQLite paths and a time-ordering index.
 
-- 61 automated tests, with one upstream Starlette test-client deprecation warning.
-- Ruff lint and format checks.
-- Strict mypy checks for 11 source files.
-- Frozen dependency-lock validation.
+The recovered daily slice now rejects invalid Unicode scalar values in direct and nested attribute keys/values before persistence. Forty sequential RED-GREEN regression cases cover JSON/NDJSON, high/low surrogate boundaries and whole-batch rejection. Valid non-ASCII keys and supplementary characters still survive ingestion and search unchanged. Previously stored malformed attributes are not migrated or repaired by this fix.
 
-Independent review also exercised package build, lock-based dependency auditing and an isolated installed-wheel localhost health/ingest/search smoke test. Linux x86_64/Python 3.11.16 only was exercised; arm64, Docker runtime, production load and distributed scale are unverified.
+Verification passed:
+
+- 101 automated tests, with one unchanged upstream Starlette test-client deprecation warning.
+- Ruff lint/format and strict mypy checks for 11 source files.
+- Compile checks, frozen dependency-lock validation and wheel/source-distribution build.
+- Frozen-lock dependency audit: no known vulnerabilities; the unpublished local package could not be audited through PyPI.
+- Added-line security scan: no flagged patterns. The tracked secret scan retained six reviewed documentation/test-fixture findings and introduced no new findings.
+- Independent security/correctness review of this Unicode fix, including an independent full-suite rerun. This is not approval for source publication.
+
+An isolated uv environment installed the built wheel with frozen runtime dependencies. Browser verification against a temporary loopback-only server confirmed health, malformed JSON/NDJSON rejection, zero rejected events in search, valid Unicode round-trip and rejection of unauthenticated search. The test server was shut down afterward.
+
+Linux x86_64/Python 3.11.16 only was exercised, with temporary local SQLite files and no GPU. Isolated wheel installation is not clean-machine native installation acceptance. Arm64, Docker runtime, resource profiles, ClickHouse, production load, long retention and distributed scale remain unverified.
 
 ## Source-publication blockers
 
-- Reject invalid Unicode scalar values in nested event attributes before persistence; the current internal behavior can make a stored event unsearchable.
 - Handle timezone normalization at datetime range boundaries as controlled validation failures.
 - Add bounded query execution/cancellation and isolate synchronous SQLite work from the asynchronous event loop.
-- Make local-evaluation Compose binding safe and verify real startup, volume ownership and persistence.
+- Make local-evaluation Compose binding safe and verify real startup, volume ownership and persistence. Docker is unavailable in the current test environment.
 - Establish a suitable private security-reporting process before an installable release.
 - Obtain a fresh independent publication review after all blockers close.
 
-Next bounded slice: Unicode attribute validation with observed failing regressions before the fix. Remaining slices are handled deliberately, not bundled into a rushed release.
+Next bounded daily slice: ingestion UTC normalization overflow with observed failing regressions before the fix. Only the interrupted Unicode slice was resumed; no additional milestone was started.
 
 ## Future capabilities
 
