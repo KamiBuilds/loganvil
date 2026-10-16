@@ -4,11 +4,12 @@ Each phase includes tests, safe installation, documentation and independent revi
 
 ## 1. Complete the ingestion/search tracer slice
 
-The internal SQLite/FastAPI slice has 121 passing tests on Linux x86_64/Python 3.11.16. Publication remains blocked; see [status](STATUS.md).
+The internal SQLite/FastAPI slice has 127 passing tests on Linux x86_64/Python 3.11.16. Publication remains blocked; see [status](STATUS.md).
 
 - Verified: reject invalid Unicode attribute keys/values before persistence, with sequential RED-GREEN regressions and valid Unicode round-trip checks.
 - Verified: reject ingestion UTC normalization overflow before persistence, with eight RED-GREEN regressions and twelve valid-boundary compatibility controls. Search-bound datetime validation remains outside this slice's verified scope.
-- Bound query execution time and isolate synchronous storage work from the event loop.
+- Verified: cooperative SQLite search execution budget, including shared-connection/external database lock waiting, controlled expiration and cleanup/recovery. This is not a hard HTTP deadline or performance guarantee.
+- Isolate synchronous ingestion storage work from the event loop. Broader query budgets and explicit client-disconnect cancellation remain unfinished.
 - Restrict local evaluation bindings; verify Compose startup, volume ownership and persistence.
 - Re-run the full adversarial review before adding implementation to this public repository.
 
