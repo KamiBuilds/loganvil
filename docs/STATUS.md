@@ -1,47 +1,46 @@
 # Development status
 
-Updated: 2026-10-16.
+Updated: 2026-10-17.
 
 ## Public distribution
 
-This is a documentation/planning repository. No application code, installable package, executable container or GitHub Release is currently distributed here. Public source publication remains withheld; passing local checks and a scoped fix review do not replace the full publication gate.
+This remains a documentation/planning repository. No application source, installable package, executable container or GitHub Release is distributed here. Local tests and a scoped review do not replace the full source-publication gate.
 
 ## Verified internal progress
 
-The internal SQLite/FastAPI tracer slice provides bounded JSON/NDJSON ingestion, shared API-key checks, basic time-windowed search, restrictive SQLite paths and a time-ordering index. Earlier work rejects invalid Unicode attributes and ingestion timestamps that cannot be represented in UTC.
+The internal SQLite/FastAPI tracer slice provides bounded JSON/NDJSON ingestion, API-key checks, basic time-windowed search, restrictive SQLite paths, a time-ordering index and a cooperative search execution budget. Earlier validation rejects invalid Unicode attributes and ingestion timestamps that cannot be represented in UTC.
 
-The latest bounded slice adds a server-controlled one-second **cooperative SQLite search execution budget**. Shared-connection lock waiting and external SQLite busy waiting consume the same budget. A progress handler interrupts expensive SQL, and short queries check expiration after fetching. Expiration returns a fixed `504` without partial results; cleanup restores the previous busy timeout and clears the handler before releasing the connection lock.
-
-Three sequential RED-GREEN cycles covered the API response, a real held adapter lock and a real external SQLite exclusive lock. Additional controls verify actual SQLite interruption, short-query expiration and preservation of unrelated schema errors/custom timeouts. Subsequent writes and searches recover.
+The latest bounded slice moves synchronous SQLite ingestion persistence into the framework worker pool and awaits completion before acknowledging events. Real-lock JSON and NDJSON regressions were observed failing before the fix, then passing: the event loop and health request remained responsive while persistence waited, and acknowledgement followed successful persistence. A real database-abort compatibility control verifies batch rollback, failure without acknowledgement and subsequent recovery; it is not claimed as an additional historical RED-GREEN cycle.
 
 Verification passed:
 
-- 127 automated tests, with one unchanged upstream Starlette test-client deprecation warning.
-- Ruff lint/format and strict mypy checks for 11 source files.
-- Compile checks, frozen dependency-lock validation and wheel/source-distribution build.
-- Exported frozen dependency audit: no known vulnerabilities. This does not audit the unpublished application package through PyPI.
-- Added-line security scan: two formatted-SQL flags reviewed as internal integer-only timeout pragmas, not user-value interpolation. The tracked secret scan retained six reviewed documentation/test-fixture findings, with no new findings.
-- Independent security/correctness review of this deadline slice, including an independent full-suite/static-check rerun. This is not approval for source publication.
+- 130 automated tests, with one unchanged upstream Starlette test-client deprecation warning; no warnings suppressed.
+- Ruff lint/format, strict mypy for 11 source files, compilation, frozen-lock validation, wheel/source-distribution build and diff checks.
+- Frozen exported dependency audit: no known vulnerabilities. This does not audit the unpublished application package through PyPI.
+- Added-line security scan: no flagged patterns. Secret scan: the same six reviewed documentation/test-fixture findings, none introduced.
+- Fresh independent scoped security/correctness review, including a full-suite/static-check rerun. This is not source-publication approval.
 
-An isolated uv environment installed the built wheel with frozen runtime dependencies. Outside-source isolated Python confirmed the imported module came from that environment. Real-browser checks against a temporary loopback-only server verified health, authenticated ingest/search and rejection of unauthenticated search. A real external database lock caused the controlled `504`; releasing it restored ingest/search with both stored events preserved. The owned test server was stopped and verified unreachable afterward.
+An isolated uv environment installed the built wheel with frozen dependencies. Three focused scheduling/rollback cases passed from outside the source checkout, with package/application imports confirmed inside that environment. A real browser exercised the installed wheel on a temporary loopback-only server: health `200`, unauthenticated search `401` and JSON ingest `202`. While a separate connection held an exclusive SQLite lock, NDJSON ingestion remained pending and health returned `200`. Releasing the lock yielded `202` for both events; search returned all three stored events. The owned lock holder exited and the owned server was stopped and verified unreachable.
 
-Linux x86_64/Python 3.11.16 only was exercised, with temporary local SQLite files and no GPU. Isolated wheel installation is not clean-machine native installation acceptance. Arm64, Docker runtime, resource profiles, ClickHouse, production load, long retention and distributed scale remain unverified.
+Linux x86_64/Python 3.11.16 only was exercised, with temporary local SQLite and no GPU. This is isolated wheel evidence, not clean-machine native-install acceptance. Arm64, Docker runtime, resource profiles, ClickHouse, production load, long retention and distributed scale remain unverified.
 
-The cooperative budget is **not a hard end-to-end HTTP deadline or performance guarantee**. OS I/O, individual SQLite instructions, result decoding/validation, response serialization and scheduling can exceed it. Explicit client-disconnect cancellation remains unfinished. Search-bound datetime validation was not changed or comprehensively verified in this slice.
+## Limits and source-publication blockers
 
-## Source-publication blockers
+Persistence isolation is not whole-request isolation or a load guarantee: parsing, validation and normalization still run on the event loop. Workers share capacity with synchronous routes/dependencies; saturation can delay health and other requests. No ingestion deadline or overload admission control was added. The existing search budget remains cooperative, not a hard HTTP wall-clock deadline.
 
-- Isolate synchronous ingestion SQLite persistence from the asynchronous event loop; broader cancellation/query-budget acceptance remains open.
-- Make local-evaluation Compose binding safe and verify real startup, volume ownership and persistence. Docker is unavailable in the current test environment.
-- Establish a suitable private security-reporting process before an installable release.
-- Obtain a fresh independent publication review after all blockers close, including adversarial timestamp/query-path review.
+Publication remains held for:
 
-Next bounded daily slice: isolate synchronous ingestion persistence from the event loop, with an observed failing real-lock scheduling regression before the fix. No additional milestone was started in this run.
+- Broader cancellation/query-budget acceptance, including explicit client-disconnect cancellation and adversarial search-bound datetime review.
+- Safe local-evaluation Compose exposure and actual startup, volume ownership and persistence verification. Docker is unavailable in the current test environment.
+- A suitable private security-reporting process before an installable release.
+- Fresh full independent publication review after the blockers close.
+
+Week 1 remains in progress. Recovery of this daily slice is complete; no additional milestone was started. Next bounded daily slice: localhost-only local-evaluation Compose binding and reverse-proxy guidance with failing-before-fix configuration regressions. Actual container acceptance remains a separate blocked gate.
 
 ## Future capabilities
 
-ClickHouse integration, browser UI, live tail, identity/RBAC, dashboards, alerts, retention, signed distribution and scale/failure validation are incomplete or unverified. See the roadmap for the intended sequence.
+ClickHouse integration, browser UI, live tail, identity/RBAC, dashboards, alerts, retention, signed distribution and scale/failure validation are incomplete or unverified. See the roadmap for the intended sequence. The 10,000,000+ registered-identity goal remains an unverified distributed architectural target, not a current support claim.
 
 ## Update cadence
 
-After each normal daily development slice, publish a concise evidence-backed status/roadmap update when state changes. Weekly reports summarize verified progress and risks. Do not publish secrets, private logs, prompts, raw transcripts, unsupported claims or broken implementation to satisfy a cadence.
+After each normal daily development slice, publish concise evidence-backed status/roadmap changes when verified state changes. Weekly reports summarize progress and risks. Never publish secrets, private logs, prompts, raw transcripts, unsupported claims or broken implementation to satisfy a cadence.
