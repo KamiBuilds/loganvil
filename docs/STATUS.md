@@ -1,6 +1,6 @@
 # Development status
 
-Updated: 2026-10-17.
+Updated: 2026-10-18.
 
 ## Public distribution
 
@@ -8,34 +8,34 @@ This remains a documentation/planning repository. No application source, install
 
 ## Verified internal progress
 
-The internal SQLite/FastAPI tracer slice provides bounded JSON/NDJSON ingestion, API-key checks, basic time-windowed search, restrictive SQLite paths, a time-ordering index and a cooperative search execution budget. Earlier validation rejects invalid Unicode attributes and ingestion timestamps that cannot be represented in UTC.
+The internal SQLite/FastAPI tracer slice provides bounded JSON/NDJSON ingestion, API-key checks, basic time-windowed search, restrictive SQLite paths, a time-ordering index, cooperative search execution budgets and awaited worker-pool ingestion persistence. Earlier validation rejects invalid Unicode attributes and ingestion timestamps that cannot be represented in UTC.
 
-The latest bounded slice moves synchronous SQLite ingestion persistence into the framework worker pool and awaits completion before acknowledging events. Real-lock JSON and NDJSON regressions were observed failing before the fix, then passing: the event loop and health request remained responsive while persistence waited, and acknowledgement followed successful persistence. A real database-abort compatibility control verifies batch rollback, failure without acknowledgement and subsequent recovery; it is not claimed as an additional historical RED-GREEN cycle.
+The latest bounded slice changes the checked-in Compose application mapping from all-interface publication to IPv4 loopback only (`127.0.0.1:8000:8000`). Its exact-mapping regression failed against the original declaration and passed after the one-line fix. An additional first-run-passing compatibility control verifies that ClickHouse remains unpublished and no explicit networking overrides are declared; it is not an additional historical RED-GREEN claim.
+
+Internal operator guidance now distinguishes host and proxy-container loopback, preserves API-key authentication, and explains TLS/access/rate/body/timeout requirements, log/header risks and remaining trust boundaries. Ordinary local processes and same-network containers can still reach services. Guidance requires a maintained Docker Engine >=28.0.0 because Docker documents an older same-L2 localhost-publishing bypass; that version floor alone does not validate network isolation. Future disposable-host acceptance must test host LAN/IPv6 and container-IP exposure, rendered overrides, ownership, persistence and restart behavior.
 
 Verification passed:
 
-- 130 automated tests, with one unchanged upstream Starlette test-client deprecation warning; no warnings suppressed.
+- Five focused distribution tests; 132 automated tests overall, with one unchanged upstream Starlette test-client deprecation warning. No warnings suppressed.
 - Ruff lint/format, strict mypy for 11 source files, compilation, frozen-lock validation, wheel/source-distribution build and diff checks.
 - Frozen exported dependency audit: no known vulnerabilities. This does not audit the unpublished application package through PyPI.
-- Added-line security scan: no flagged patterns. Secret scan: the same six reviewed documentation/test-fixture findings, none introduced.
-- Fresh independent scoped security/correctness review, including a full-suite/static-check rerun. This is not source-publication approval.
+- Added-line security scan: no flagged patterns. Tracked-file secret scan: the same six reviewed documentation/test-fixture findings, none introduced. An additional all-files scan flagged the standard generated pytest cache marker, not a secret or publication input.
+- Fresh independent scoped security/correctness review, including full-suite/static-check reruns. This is not source-publication or deployment approval.
 
-An isolated uv environment installed the built wheel with frozen dependencies. Three focused scheduling/rollback cases passed from outside the source checkout, with package/application imports confirmed inside that environment. A real browser exercised the installed wheel on a temporary loopback-only server: health `200`, unauthenticated search `401` and JSON ingest `202`. While a separate connection held an exclusive SQLite lock, NDJSON ingestion remained pending and health returned `200`. Releasing the lock yielded `202` for both events; search returned all three stored events. The owned lock holder exited and the owned server was stopped and verified unreachable.
-
-Linux x86_64/Python 3.11.16 only was exercised, with temporary local SQLite and no GPU. This is isolated wheel evidence, not clean-machine native-install acceptance. Arm64, Docker runtime, resource profiles, ClickHouse, production load, long retention and distributed scale remain unverified.
+Linux x86_64/Python 3.11.16 was exercised with temporary SQLite and no GPU. No application/storage source changed in this slice. Docker is still unavailable: Compose rendering, container build/startup, actual loopback/remote-access enforcement, volume ownership/persistence/restart and proxy deployment were **not verified**. A parsed YAML regression and Python package build are not container acceptance. No new clean-machine native installation, arm64, resource-profile, ClickHouse, load, retention or distributed-scale evidence was produced.
 
 ## Limits and source-publication blockers
 
-Persistence isolation is not whole-request isolation or a load guarantee: parsing, validation and normalization still run on the event loop. Workers share capacity with synchronous routes/dependencies; saturation can delay health and other requests. No ingestion deadline or overload admission control was added. The existing search budget remains cooperative, not a hard HTTP wall-clock deadline.
+Existing ingestion persistence isolation is not whole-request isolation: parsing/validation/normalization still run on the event loop, and shared worker saturation can delay health and other requests. No ingestion deadline or overload admission control exists. Search limits remain cooperative, not a hard HTTP wall-clock deadline. A loopback declaration does not isolate local callers or prove the effective Docker/firewall configuration.
 
 Publication remains held for:
 
 - Broader cancellation/query-budget acceptance, including explicit client-disconnect cancellation and adversarial search-bound datetime review.
-- Safe local-evaluation Compose exposure and actual startup, volume ownership and persistence verification. Docker is unavailable in the current test environment.
+- Actual Compose startup, effective exposure, volume ownership, persistence and restart verification on an authorized disposable runtime. Docker is unavailable in the current environment.
 - A suitable private security-reporting process before an installable release.
 - Fresh full independent publication review after the blockers close.
 
-Week 1 remains in progress. Recovery of this daily slice is complete; no additional milestone was started. Next bounded daily slice: localhost-only local-evaluation Compose binding and reverse-proxy guidance with failing-before-fix configuration regressions. Actual container acceptance remains a separate blocked gate.
+Week 1 remains in progress. Recovery of this daily slice is complete; no additional milestone was started. Next bounded daily slice: adversarial search-bound UTC range validation review and controlled API boundary tests, with failing-before-fix evidence for any repair. Container acceptance stays separately blocked.
 
 ## Future capabilities
 
