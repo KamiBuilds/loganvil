@@ -4,10 +4,11 @@ Each phase includes tests, safe installation, documentation and independent revi
 
 ## 1. Complete the ingestion/search tracer slice
 
-The internal SQLite/FastAPI slice has 132 passing tests on Linux x86_64/Python 3.11.16. Publication remains blocked; see [status](STATUS.md).
+The internal SQLite/FastAPI slice has 153 passing tests on Linux x86_64/Python 3.11.16. Publication remains blocked; see [status](STATUS.md).
 
 - Verified: reject invalid Unicode attribute keys/values before persistence, with sequential RED-GREEN regressions and valid Unicode round-trip checks.
-- Verified: reject ingestion UTC normalization overflow before persistence, with eight RED-GREEN regressions and twelve valid-boundary compatibility controls. Search-bound datetime validation remains outside this slice's verified scope.
+- Verified: reject ingestion UTC normalization overflow before persistence, with eight RED-GREEN regressions and twelve valid-boundary compatibility controls.
+- Verified: reject unrepresentable search-bound UTC normalization with fixed `422` responses, eight RED-GREEN regressions, thirteen additional first-run-passing boundary/window controls and installed-wheel/browser checks. Half-open windows cannot include the exact maximum UTC instant; broader cancellation/query-budget acceptance remains unfinished.
 - Verified: cooperative SQLite search execution budget, including shared-connection/external database lock waiting, controlled expiration and cleanup/recovery. This is not a hard HTTP deadline or performance guarantee.
 - Verified: synchronous ingestion persistence is awaited in the framework worker pool, with real-lock JSON/NDJSON scheduling regressions and rollback/recovery coverage. Parsing/normalization, worker saturation and overload control are not covered by a general responsiveness guarantee. Broader query budgets and explicit client-disconnect cancellation remain unfinished.
 - Verified declaration only: local-evaluation Compose app publication is IPv4-loopback-only, with unpublished ClickHouse ports, no explicit networking overrides, a RED-GREEN mapping regression and proxy-boundary guidance. Docker runtime exposure, startup, volume ownership, persistence and restart remain unverified and blocked on an authorized disposable runtime.
